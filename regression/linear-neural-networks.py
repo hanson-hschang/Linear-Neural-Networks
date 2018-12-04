@@ -15,11 +15,18 @@ learning_rate = 5e-2
 dim_n = 2
 R = np.array([[0., -1.],
               [1.,  0.]])
+l = 0.2
 noise_amp = 0.01
 
 def rmse(Z, Xn):
     """Compute root mean squared error"""
     return tf.sqrt(tf.reduce_mean(tf.square((Z - Xn))))
+
+def regularization(l, A):
+    """Compute regularization cost"""
+    trace_int = tf.reduce_sum(tf.square(A['A0'])) + tf.reduce_sum(tf.square(A['A1'])) + tf.reduce_sum(tf.square(A['A2']))
+    return l*trace_int/tf.cast(2.,tf.float64)
+
 
 def forward_approxi(A, X0):
     """Forward pass for our fuction"""
@@ -104,6 +111,7 @@ def batch_feeder():
 
 # Change Model parameters to tensorflow constant
 R_ = tf.constant(R)
+l_ = tf.cast(tf.constant(l),tf.float64)
 
 # just some starting value, could be random as well
 A = {'A0':tf.Variable(np.random.rand(2,2)),
@@ -120,7 +128,7 @@ A0 = tf.Variable(np.random.rand(2,2))
 XT = A0_forward(A0, X0, T_)
 
 # Optimizer
-cost = rmse(Z, XT)
+cost = rmse(Z, XT) + regularization(l_, A)
 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost) 
 
 # Mutual information
@@ -215,8 +223,8 @@ plt.rc('font', family='serif')
 
 fontsize = 20
 fig, ax = plt.subplots(1,1, figsize=(9,7))
-ax.semilogy(train_cost_history_A0, label=r'train $\phi_{T;0}$')
-ax.semilogy(test_cost_history_A0, label=r'test $\phi_{T;0}$')
+# ax.semilogy(train_cost_history_A0, label=r'train $\phi_{T;0}$')
+# ax.semilogy(test_cost_history_A0, label=r'test $\phi_{T;0}$')
 ax.semilogy(train_cost_history_At, label=r'train $\prod e^{A_t}$')
 ax.semilogy(test_cost_history_At, label=r'test $\prod e^{A_t}$')
 ax.legend(fontsize=fontsize-5)
@@ -229,9 +237,9 @@ ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
 plt.text(N_iteration*0.3,1.8,r'$J=E\left[\ \frac{1}{2}|X_T-Z|^2\right]$', fontsize=fontsize)
 plt.text(N_iteration*0.2,0.6,r'$R=$',fontsize=fontsize)
 plt.text(N_iteration*0.3,0.5,' {}  {}\n {}  {}'.format(R[0,0],R[0,1],R[1,0],R[1,1]), fontsize=fontsize)
-plt.text(N_iteration*0.5,0.6,r'$\hat R_{A_0}=$', fontsize=fontsize)
-plt.text(N_iteration*0.65,0.5,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_A0[0,0],R_hat_A0[0,1],R_hat_A0[1,0],R_hat_A0[1,1]), fontsize=fontsize)
+# plt.text(N_iteration*0.5,0.6,r'$\hat R_{A_0}=$', fontsize=fontsize)
+# plt.text(N_iteration*0.65,0.5,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_A0[0,0],R_hat_A0[0,1],R_hat_A0[1,0],R_hat_A0[1,1]), fontsize=fontsize)
 plt.text(N_iteration*0.5,0.25,r'$\hat R_{A_t}=$', fontsize=fontsize)
 plt.text(N_iteration*0.65,0.2,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_At[0,0],R_hat_At[0,1],R_hat_At[1,0],R_hat_At[1,1]), fontsize=fontsize)
-plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
+# plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
 plt.show()
