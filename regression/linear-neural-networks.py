@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 from scipy.linalg import expm
 import time
+# from data import *
 
 train_n = 10000   # number of trainning examples
 batch_size = 100 # number of trainning examples in each batch (epoch)

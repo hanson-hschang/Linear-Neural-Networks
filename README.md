@@ -25,5 +25,4 @@ $ git clone https://github.com/hanson-hschang/Linear-Neural-Networks.git
 $ pip install tensorflow==1.11
 ```
 
-
 4. Have Fun!

@@ -3,6 +3,7 @@ import numpy as np
 from scipy.linalg import expm
 from read_data import read_data, train_test_split, batch_feeder
 
+
 data_X0, data_Z = read_data("data_file_1.json")
 data_n = data_Z.shape[1]
 train_size = 0.7
@@ -10,6 +11,7 @@ X0_train, Z_train, _, _, X0_test, Z_test = train_test_split(data_X0, data_Z, tra
 train_n = Z_train.shape[1]  # number of trainning examples
 test_n = Z_test.shape[1]    # number of testing examples 
 dim_n = X0_train.shape[0]
+
 
 batch_size = 20 # number of trainning examples in each batch (epoch)
 N_epoch = 5
@@ -27,20 +29,27 @@ beta = (np.random.rand(dim_n)-0.5)*2
 beta = beta/np.linalg.norm(beta)
 print("beta = ", beta)
 
-def exp_lost(Z, XF):
+
+# Define Loss Functions
+
+def exp_loss(Z, XF):
     """Compute cost"""
     Z = tf.reshape(Z, [-1])
     return tf.reduce_mean(tf.exp(-tf.multiply(Z,XF)))
 
-def cross_entropy(Z, XF):
+def cross_entropy_loss(Z, XF):
     """Compute cost"""
     Z = tf.reshape(Z, [-1])
-    return -tf.reduce_mean(
-                tf.add(
+    return tf.reduce_mean(
+                -tf.add(
                     tf.multiply(Z,tf.math.log(XF)),
                     tf.multiply(tf.subtract(tf.constant(1.0, tf.float64),Z),
                                 tf.math.log(tf.subtract(tf.constant(1.0, tf.float64),XF)))))
-    
+
+def log_loss(Z, XF):
+    Z = tf.reshape(Z, [-1])
+    return tf.reduce_mean(tf.log(tf.cast(tf.constant(1.),tf.float64)+tf.exp(-tf.multiply(Z,XF))))
+
 def forward_approxi(A, X0, beta):
     """Forward pass for our fuction"""
     I = tf.constant(np.identity(dim_n))
@@ -99,13 +108,13 @@ A = {'A0':tf.Variable(np.random.rand(dim_n,dim_n),dtype=tf.float64),
 XF, (X1, X2, X3) = forward_approxi(A, X0, beta_)
 
 # Optimizer
-# cost = exp_lost(Z, XF)
-cost = cross_entropy(Z, XF)
+# cost = exp_loss(Z, XF)
+# cost = cross_entropy_loss(Z, XF)
+cost = log_loss(Z, XF)
 optimizer = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost) 
 
 train_cost_history = np.zeros(N_iteration)
 test_cost_history = np.zeros(N_iteration)
-XF_history = np.zeros(N_iteration)
 # First, we need to create a Tensorflow session object
 with tf.Session() as sess:
     
@@ -120,7 +129,6 @@ with tf.Session() as sess:
             
             train_cost_history[i*N_batch+k] = train_cost
             test_cost_history[i*N_batch+k] = test_cost
-            # XF_history[i*N_batch+k] = current_XF
     
     # output = sess.run(fetches=XF, feed_dict={X0: X0_test, Z: Z_test})
     # print(output.shape)
@@ -140,7 +148,6 @@ with tf.Session() as sess:
     # print("w_hat = %s" % w_hat)
 
 print(train_cost_history)
-print(XF_history)
 
 import matplotlib.pyplot as plt
 plt.rc('text', usetex=True)
