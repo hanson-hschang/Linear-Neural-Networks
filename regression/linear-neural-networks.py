@@ -1,9 +1,162 @@
+import sys
 import tensorflow as tf
 import numpy as np
 from scipy.linalg import expm
 import time
-# from data import *
+from data import read_data, train_test_split, batch_feeder
+import matplotlib
+matplotlib.use("TkAgg")
+import matplotlib.pyplot as plt
 
+class Model:
+    def __init__(self, data_info, hyper_param):
+
+        self.data_info = data_info
+        self.hyper_param = hyper_param
+
+        # Placeholders for data
+        self.X0 = tf.placeholder(tf.float64, [data_info['input_data_dimension'], None])
+        self.Z = tf.placeholder(tf.float64, [data_info['output_data_dimension'], None])
+
+        # Model definition
+        self.A = dict()
+        for i in range(hyper_param['inner_layers']+1):
+            self.A['A'+str(i)] = tf.Variable(np.random.rand(data_info['input_data_dimension'],data_info['input_data_dimension']))
+        if hyper_param['model']=='forward':   
+            self.XT, self.Xi = self.forward()
+        elif hyper_param['model']=='forward_exp':   
+            self.XT, self.Xi = self.forward_exp()
+
+        # Cost Function
+        self.cost = self.rmse() + self.regularization()
+
+        # Optimizer
+        self.optimizer = tf.train.GradientDescentOptimizer(self.hyper_param['learning_rate']).minimize(self.cost) 
+    
+    def forward(self):
+        """Forward pass for our fuction"""
+        Xi = dict(X0=self.X0)
+        for i in range(hyper_param['inner_layers']+1):
+            Xi['X'+str(i+1)] = tf.matmul(self.hyper_param['dt']*self.A['A'+str(i)],Xi['X'+str(i)])
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
+
+    def forward_exp(self):
+        """Forward pass for our fuction"""
+        Xi = dict(X0=self.X0)
+        for i in range(hyper_param['inner_layers']+1):
+            Xi['X'+str(i+1)] = tf.matmul(tf.linalg.expm(self.hyper_param['dt']*self.A['A'+str(i)]),Xi['X'+str(i)])
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
+    
+    def rmse(self):
+        """Compute root mean squared error"""
+        return tf.sqrt(tf.reduce_mean(tf.square((self.Z - self.XT))))
+
+    def regularization(self):
+        """Compute regularization cost"""
+        trace_int = 0
+        for i in range(hyper_param['inner_layers']+1):
+            trace_int = trace_int + tf.reduce_sum(tf.square(self.A['A'+str(i)]) * self.hyper_param['dt'])
+        return self.hyper_param['lambda']*trace_int
+
+    def train(self, X0_train, Z_train, X0_validate, Z_validate):
+        train_cost_history = np.zeros(hyper_param['N_iteration'])
+        validate_cost_history = np.zeros(hyper_param['N_iteration'])
+
+        # First, we need to create a Tensorflow session object
+        with tf.Session() as sess:
+            # Initialize all defined variables
+            tf.global_variables_initializer().run()
+
+            for i in range(self.hyper_param['N_epoch']):
+                for k, (X0_train_feeder, Z_train_feeder) in enumerate(batch_feeder(X0_train, Z_train, batch_size=hyper_param['batch_size'])):
+                    _, train_cost = sess.run(fetches=[self.optimizer, self.cost], feed_dict={self.X0: X0_train_feeder, self.Z: Z_train_feeder})
+                    validate_cost = sess.run(fetches=self.cost, feed_dict={self.X0: X0_validate, self.Z: Z_validate})
+                    train_cost_history[i*N_batch+k] = train_cost
+                    validate_cost_history[i*N_batch+k] = validate_cost
+            
+            R_hat = np.identity(self.data_info['input_data_dimension'])
+            final_A = sess.run(self.A)
+            if self.hyper_param['model']=='forward':
+                for key, Ai in final_A.items():
+                    R_hat = np.dot(Ai, R_hat)
+            elif self.hyper_param['model']=='forward_exp':
+                for key, Ai in final_A.items():
+                    R_hat = np.dot(expm(Ai), R_hat)
+
+        return train_cost_history, validate_cost_history, R_hat
+
+
+def read_and_split_data_from_file(file_name):
+    data_X0, data_Z, data_info = read_data(file_name)
+    data_info['train_size'], data_info['validate_size'], data_info['test_size'] = 0.7, 0.2, 0.1
+    X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test = \
+        train_test_split(X=data_X0, Z=data_Z, \
+                            train_size=data_info['train_size'], \
+                            validate_size=data_info['validate_size'])
+
+    return X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test, data_info
+
+def plot_cost(train_cost, validate_cost):
+    # plt.rc('text', usetex=True)
+    plt.rc('font', family='serif')
+
+    fontsize = 20
+    fig, ax = plt.subplots(1,1, figsize=(9,7))
+    ax.semilogy(train_cost, label=r'train')
+    ax.semilogy(validate_cost, label=r'validate')
+    ax.legend(fontsize=fontsize-5)
+    ax.tick_params(labelsize=fontsize)
+    ax.set_ylim([0.01,5.1])
+    ax.set_xlabel('Iteration', fontsize=fontsize)
+    ax.set_ylabel('Cost', fontsize=fontsize)
+    ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
+    return 
+
+if __name__ == '__main__':
+    X0_train, Z_train, \
+    X0_validate, Z_validate, \
+    X0_test, Z_test, \
+    data_info = read_and_split_data_from_file(file_name=sys.argv[1])
+
+    hyper_param = dict()
+    hyper_param['batch_size'] = 10
+    hyper_param['N_epoch'] = 5
+    hyper_param['learning_rate'] = 5e-2
+    N_batch = Z_train.shape[1] // hyper_param['batch_size']
+    hyper_param['N_iteration'] = N_batch * hyper_param['N_epoch']
+
+    hyper_param['inner_layers'] = 3
+    hyper_param['dt'] = 0.25
+    hyper_param['lambda'] = 0
+
+    hyper_param['model'] = 'forward'
+
+    model_At = Model(data_info, hyper_param)
+    train_cost, validate_cost, R_hat = model_At.train(X0_train, Z_train, X0_validate, Z_validate)
+
+    print(R_hat)
+    # plot_cost(train_cost, validate_cost)
+
+
+    hyper_param['inner_layers'] = 0
+    hyper_param['dt'] = 1
+    model_A0 = Model(data_info, hyper_param)
+    train_cost, validate_cost, R_hat = model_A0.train(X0_train, Z_train, X0_validate, Z_validate)
+
+
+    print(R_hat)
+    # plot_cost(train_cost, validate_cost)
+
+    plt.show()
+
+
+
+
+
+
+
+
+'''
 train_n = 10000   # number of trainning examples
 batch_size = 100 # number of trainning examples in each batch (epoch)
 N_batch = train_n // batch_size
@@ -13,11 +166,12 @@ test_n = 100    # number of testing examples
 learning_rate = 5e-2
 
 # Model parameters
-dim_n = 2
-R = np.array([[0., -1.],
-              [1.,  0.]])
-l = 0.2
-noise_amp = 0.01
+# dim_n = 2
+# R = np.array([[0., -1.],
+#               [1.,  0.]])
+# l = 0.2
+# noise_amp = 0.01
+
 
 def rmse(Z, Xn):
     """Compute root mean squared error"""
@@ -244,3 +398,4 @@ plt.text(N_iteration*0.5,0.25,r'$\hat R_{A_t}=$', fontsize=fontsize)
 plt.text(N_iteration*0.65,0.2,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_At[0,0],R_hat_At[0,1],R_hat_At[1,0],R_hat_At[1,1]), fontsize=fontsize)
 # plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
 plt.show()
+'''
