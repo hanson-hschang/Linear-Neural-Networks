@@ -28,10 +28,10 @@ class Model:
             self.XT, self.Xi = self.forward()
         elif hyper_param['model']=='forward_exp':   
             self.XT, self.Xi = self.forward_exp()
-
         self.beta = tf.constant(hyper_param['beta'])
         self.output =  tf.sigmoid(tf.matmul(self.beta,self.XT))
         self.predeiction = self.output / tf.reduce_sum(self.output,0)
+
         # Cost Function
         self.cost = self.log_lost() + self.regularization()
 
@@ -49,8 +49,7 @@ class Model:
         Xi = dict(X0=self.X0)
         for i in range(hyper_param['inner_layers']+1):
             Xi['X'+str(i+1)] = tf.matmul(self.hyper_param['dt']*self.A['A'+str(i)],Xi['X'+str(i)])
-        XF = tf.sigmoid(Xi['X'+str(hyper_param['inner_layers']+1)])
-        return XF, Xi
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
 
     # Forward Network with Exponetial Weight
     def forward_exp(self):
@@ -58,8 +57,7 @@ class Model:
         Xi = dict(X0=self.X0)
         for i in range(hyper_param['inner_layers']+1):
             Xi['X'+str(i+1)] = tf.matmul(tf.linalg.expm(self.hyper_param['dt']*self.A['A'+str(i)]),Xi['X'+str(i)])
-        XF = tf.sigmoid(Xi['X'+str(hyper_param['inner_layers']+1)])
-        return XF, Xi
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
     
     # Cross Entropy Lost Function
     def log_lost(self):
@@ -79,8 +77,7 @@ class Model:
         prediction = tf.argmax(self.output, 0)
         label = tf.argmax(self.Z, 0)
         equality = tf.equal(prediction,label)
-        accuracy = tf.reduce_mean(tf.cast(equality, tf.float64))
-        return accuracy
+        return tf.reduce_mean(tf.cast(equality, tf.float64))
 
     # Start Training
     def train(self, X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test):
@@ -253,7 +250,7 @@ if __name__ == '__main__':
 
     hyper_param = dict()
     hyper_param['batch_size'] = 10
-    hyper_param['N_epoch'] = 5
+    hyper_param['N_epoch'] = 10
     hyper_param['learning_rate'] = 5e-2
     N_batch = Z_train.shape[1] // hyper_param['batch_size']
     hyper_param['N_iteration'] = N_batch * hyper_param['N_epoch']
@@ -264,9 +261,12 @@ if __name__ == '__main__':
 
     hyper_param['inner_layers'] = 3
     hyper_param['dt'] = 0.25
-    hyper_param['lambda'] = 0.3
+    hyper_param['lambda'] = 0
 
-    hyper_param['model'] = 'forward'
+    if sys.platform=='linux':
+        hyper_param['model'] = 'forward_exp' # for Linux version of tf
+    else:
+        hyper_param['model'] = 'forward' # for other version of tf 
 
     model_At = Model(data_info, hyper_param)
     train_cost, validate_cost, w_hat, normal_to_w_hat = model_At.train(X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test)

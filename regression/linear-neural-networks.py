@@ -129,8 +129,11 @@ if __name__ == '__main__':
     hyper_param['dt'] = 0.25
     hyper_param['lambda'] = 0
 
-    hyper_param['model'] = 'forward'
-
+    if sys.platform=='linux':
+        hyper_param['model'] = 'forward_exp' # for Linux version of tf
+    else:
+        hyper_param['model'] = 'forward' # for other version of tf 
+    
     model_At = Model(data_info, hyper_param)
     train_cost, validate_cost, R_hat = model_At.train(X0_train, Z_train, X0_validate, Z_validate)
 

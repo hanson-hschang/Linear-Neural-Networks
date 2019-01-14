@@ -1,2 +1,2 @@
-model_checkpoint_path: "/Users/hschang/Desktop/Linear-Neural-Networks/classification/model.ckpt"
-all_model_checkpoint_paths: "/Users/hschang/Desktop/Linear-Neural-Networks/classification/model.ckpt"
+model_checkpoint_path: "/home/hschang/Desktop/Linear-Neural-Networks/classification/model.ckpt"
+all_model_checkpoint_paths: "/home/hschang/Desktop/Linear-Neural-Networks/classification/model.ckpt"
