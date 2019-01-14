@@ -102,37 +102,6 @@ def plot_cost(train_cost, validate_cost):
 
     fontsize = 20
     fig, ax = plt.subplots(1,1, figsize=(9,7))
-<<<<<<< HEAD
-    ax.semilogy(result['train_cost'], label=r'train')
-    ax.semilogy(result['test_cost'], label=r'test')
-    ax.legend(fontsize=fontsize-5)
-    ax.tick_params(labelsize=fontsize)
-    # ax.set_xticks(np.arange(0,model.N_iteration+model.N_batch,model.N_batch))
-    # ax.set_ylim([0.001,5.1])
-    ax.set_xlabel('Iteration', fontsize=fontsize)
-    ax.set_ylabel('Cost', fontsize=fontsize)
-    ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
-    # plt.text(N_iteration*0.3,1.8,r'$J=E\left[\ \frac{1}{2}|X_T-Z|^2\right]$', fontsize=fontsize)
-    # plt.text(N_iteration*0.2,0.6,r'$R=$',fontsize=fontsize)
-    # plt.text(N_iteration*0.3,0.5,' {}  {}\n {}  {}'.format(R[0,0],R[0,1],R[1,0],R[1,1]), fontsize=fontsize)
-    # plt.text(N_iteration*0.5,0.6,r'$\hat R_{A_0}=$', fontsize=fontsize)
-    # plt.text(N_iteration*0.65,0.5,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_A0[0,0],R_hat_A0[0,1],R_hat_A0[1,0],R_hat_A0[1,1]), fontsize=fontsize)
-    # plt.text(N_iteration*0.5,0.25,r'$\hat R_{A_t}=$', fontsize=fontsize)
-    # plt.text(N_iteration*0.65,0.2,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_At[0,0],R_hat_At[0,1],R_hat_At[1,0],R_hat_At[1,1]), fontsize=fontsize)
-    # plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
-    plt.show()
-
-
-# train_n = 10000   # number of trainning examples
-# batch_size = 100 # number of trainning examples in each batch (epoch)
-# N_batch = train_n // batch_size
-# N_epoch = 5
-# N_iteration = N_batch * N_epoch
-# test_n = 100    # number of testing examples
-# learning_rate = 5e-2
-
-# # Model parameters
-=======
     ax.semilogy(train_cost, label=r'train')
     ax.semilogy(validate_cost, label=r'validate')
     ax.legend(fontsize=fontsize-5)
@@ -197,34 +166,12 @@ test_n = 100    # number of testing examples
 learning_rate = 5e-2
 
 # Model parameters
->>>>>>> e7b8dfab6aca76191f0678033fd4290e2a801f5b
 # dim_n = 2
 # R = np.array([[0., -1.],
 #               [1.,  0.]])
 # l = 0.2
 # noise_amp = 0.01
 
-<<<<<<< HEAD
-# def rmse(Z, Xn):
-#     """Compute root mean squared error"""
-#     return tf.sqrt(tf.reduce_mean(tf.square((Z - Xn))))
-
-# def regularization(l, A):
-#     """Compute regularization cost"""
-#     trace_int = tf.reduce_sum(tf.square(A['A0'])) + tf.reduce_sum(tf.square(A['A1'])) + tf.reduce_sum(tf.square(A['A2']))
-#     return l*trace_int/tf.cast(2.,tf.float64)
-
-
-# def forward_approxi(A, X0):
-#     """Forward pass for our fuction"""
-#     I = tf.constant(np.array([[1.,0.],[0.,1.]]))
-
-#     # Layer 1 Computation
-#     X1 = tf.matmul(tf.add(I,A['A0']),X0)
-
-#     # Layer 2 Computation
-#     X2 = tf.matmul(tf.add(I,A['A1']),X1)
-=======
 
 def rmse(Z, Xn):
     """Compute root mean squared error"""
@@ -245,7 +192,6 @@ def forward_approxi(A, X0):
 
     # Layer 2 Computation
     X2 = tf.matmul(tf.add(I,A['A1']),X1)
->>>>>>> e7b8dfab6aca76191f0678033fd4290e2a801f5b
     
 #     # Layer 3 Computation
 #     X3 = tf.matmul(tf.add(I,A['A2']),X2)
@@ -413,47 +359,6 @@ def forward_approxi(A, X0):
 #             # print(curr_cov,"\n", np.cov(np.concatenate((X0_train, Z_train), axis=0)))
 #             # print(curr_det,"\n", np.linalg.det(np.cov(np.concatenate((X0_train, Z_train), axis=0))))
     
-<<<<<<< HEAD
-#     duration = time.time() - start
-#     final_A = sess.run(A)
-#     R_hat_At = np.identity(dim_n)
-#     for key, Ai in final_A.items():
-#         print("%s = %s" % (key, Ai))
-#         # R_hat = np.dot(np.add(I,Ai),R_hat)
-#         R_hat_At = np.dot(expm(Ai),R_hat_At)
-#     print("R_hat = %s" % R_hat_At)
-#     print("R = %s" % R)
-
-# init_At = init_time
-# duation_At = duration - init_At
-
-# import matplotlib.pyplot as plt
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif')
-
-# fontsize = 20
-# fig, ax = plt.subplots(1,1, figsize=(9,7))
-# # ax.semilogy(train_cost_history_A0, label=r'train $\phi_{T;0}$')
-# # ax.semilogy(test_cost_history_A0, label=r'test $\phi_{T;0}$')
-# ax.semilogy(train_cost_history_At, label=r'train $\prod e^{A_t}$')
-# ax.semilogy(test_cost_history_At, label=r'test $\prod e^{A_t}$')
-# ax.legend(fontsize=fontsize-5)
-# ax.tick_params(labelsize=fontsize)
-# ax.set_xticks(np.arange(0,N_iteration+N_batch,N_batch))
-# ax.set_ylim([0.01,5.1])
-# ax.set_xlabel('Iteration', fontsize=fontsize)
-# ax.set_ylabel('Cost', fontsize=fontsize)
-# ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
-# plt.text(N_iteration*0.3,1.8,r'$J=E\left[\ \frac{1}{2}|X_T-Z|^2\right]$', fontsize=fontsize)
-# plt.text(N_iteration*0.2,0.6,r'$R=$',fontsize=fontsize)
-# plt.text(N_iteration*0.3,0.5,' {}  {}\n {}  {}'.format(R[0,0],R[0,1],R[1,0],R[1,1]), fontsize=fontsize)
-# # plt.text(N_iteration*0.5,0.6,r'$\hat R_{A_0}=$', fontsize=fontsize)
-# # plt.text(N_iteration*0.65,0.5,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_A0[0,0],R_hat_A0[0,1],R_hat_A0[1,0],R_hat_A0[1,1]), fontsize=fontsize)
-# plt.text(N_iteration*0.5,0.25,r'$\hat R_{A_t}=$', fontsize=fontsize)
-# plt.text(N_iteration*0.65,0.2,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_At[0,0],R_hat_At[0,1],R_hat_At[1,0],R_hat_At[1,1]), fontsize=fontsize)
-# # plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
-# plt.show()
-=======
     duration = time.time() - start
     final_A = sess.run(A)
     R_hat_At = np.identity(dim_n)
@@ -494,4 +399,3 @@ plt.text(N_iteration*0.65,0.2,' {:.2f}  {:.2f}\n {:.2f}  {:.2f}'.format(R_hat_At
 # plt.text(N_iteration*0.3,0.08,'exec. time for $A_0$: {:.2f}+{:.2f} sec.,\n exec. time for $A_t$: {:.2f}+{:.2f} sec.'.format(init_A0, duation_A0, init_At, duation_At), fontsize=fontsize)
 plt.show()
 '''
->>>>>>> e7b8dfab6aca76191f0678033fd4290e2a801f5b
