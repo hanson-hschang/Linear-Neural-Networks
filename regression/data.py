@@ -3,15 +3,16 @@ import json
 import numpy as np
 from scipy.linalg import expm
 
-def generate_data(file_name, R, dim_n, data_n):
+def generate_data(file_name, R, noise_amp, dim_n, data_n):
     file_name = "data/" + file_name
 
-    def relation(X0, R):
-        Z = np.matmul(R,X0)
+    def relation(X0, R, noise):
+        Z = np.matmul(R,X0) + noise
         return Z
 
-    X0 = (np.random.rand(dim_n, data_n)-0.5)*2
-    Z = relation(X0, R)
+    X0 = (np.random.rand(dim_n, data_n) - 0.5) * 2
+    noise = noise_amp * np.random.randn(dim_n, data_n)
+    Z = relation(X0, R, noise)
 
     data = dict()
     for i in range(data_n):
@@ -23,6 +24,7 @@ def generate_data(file_name, R, dim_n, data_n):
     file['output_data_dimension'] = dim_n
     file['number_of_data'] = data_n
     file['retation_R'] = np.array2string(R, separator=',')
+    file['noise_amp'] = noise_amp
     file['data'] = data
 
     with open(file_name, "w") as write_file:
@@ -30,8 +32,11 @@ def generate_data(file_name, R, dim_n, data_n):
     
     return file_name
 
-def generate_simple_data(file_name="data_file.json", data_n=100000):
-    return generate_data(file_name=file_name, R=np.array([[0., -1.],[1.,  0.]]), dim_n=2, data_n=data_n)
+def generate_simple_data(file_name="data_file.json", data_n=10000):
+    return generate_data(file_name=file_name, R=np.array([[0., -1.],[1.,  0.]]), noise_amp=0., dim_n=2, data_n=data_n)
+
+def generate_simple_data_with_noise(file_name="data_file.json", data_n=10000):
+    return generate_data(file_name=file_name, R=np.array([[0., -1.],[1.,  0.]]), noise_amp=0.1, dim_n=2, data_n=data_n)
 
 def generate_exp_data(file_name="exp_data_file.json", data_n=100000):
     R = np.identity(2)
@@ -42,11 +47,11 @@ def generate_exp_data(file_name="exp_data_file.json", data_n=100000):
 def read_data(file_name):
     file_name = "data/" + file_name
     with open(file_name) as f:
-        file = json.load(f)
-        dim_n = file["input_data_dimension"]
-        data_n = file["number_of_data"]
-        R = np.fromstring(file['retation_R'][1:-1], sep=',')
-        data = file["data"]
+        file_info = json.load(f)
+        dim_n = file_info["input_data_dimension"]
+        data_n = file_info["number_of_data"]
+        R = np.fromstring(file_info['retation_R'][1:-1], sep=',')
+        data = file_info["data"]
         X0 = np.zeros((dim_n, data_n))
         Z = np.zeros((dim_n, data_n))
 
@@ -55,8 +60,7 @@ def read_data(file_name):
             X0[:,i] = np.fromstring(temp[0][1:-1], sep=',')
             Z[:,i] = np.fromstring(temp[1][1:-1], sep=',')
             
-        return X0, Z
-
+        return X0, Z, file_info
 
 def train_test_split(X, Z, train_size=0.7, validation_size=0.2):
     data_n = Z.shape[1]
@@ -85,9 +89,9 @@ if __name__ == '__main__':
     if action == "generate":
         data_type = sys.argv.pop(0)
         if data_type == "simple":
-            generate_simple_data()
-        elif data_type == "exp":
-            generate_exp_data()
+            generate_simple_data(file_name="data_file_simple.json")
+        elif data_type == "simple_noise":
+            generate_simple_data_with_noise(file_name="data_file_simple_noise.json")
     elif action == "read":
         file_name = sys.argv.pop(0)
         print(read_data(file_name))
