@@ -38,12 +38,6 @@ def generate_simple_data(file_name="data_file.json", data_n=10000):
 def generate_simple_data_with_noise(file_name="data_file.json", data_n=10000):
     return generate_data(file_name=file_name, R=np.array([[0., -1.],[1.,  0.]]), noise_amp=0.1, dim_n=2, data_n=data_n)
 
-def generate_exp_data(file_name="exp_data_file.json", data_n=100000):
-    R = np.identity(2)
-    R = np.matmul(expm(np.array([[0., -np.pi/2.],[np.pi/2., 0]])),R)
-    print(R)
-    return generate_data(file_name=file_name, R=R, dim_n=2, data_n=data_n)
-
 def read_data(file_name):
     file_name = "data/" + file_name
     with open(file_name) as f:
@@ -74,14 +68,12 @@ def train_test_split(X, Z, train_size=0.7, validation_size=0.2):
     Z_test = Z[:,train_n+validation_n:]
     return X_train, Z_train, X_validation, Z_validation, X_test, Z_test
 
-
 def batch_feeder(X, Z, batch_size=1):
     n = Z.shape[1]
     N_batch = n // batch_size
     for k in range(N_batch-1):
         yield X[:,k*batch_size:(k+1)*batch_size], Z[:,k*batch_size:(k+1)*batch_size]
     yield X[:,(N_batch-1)*batch_size:], Z[:,(N_batch-1)*batch_size:]
-
 
 if __name__ == '__main__':
     sys.argv.pop(0)
@@ -95,11 +87,3 @@ if __name__ == '__main__':
     elif action == "read":
         file_name = sys.argv.pop(0)
         print(read_data(file_name))
-
-
-
-
-
-
-
-
