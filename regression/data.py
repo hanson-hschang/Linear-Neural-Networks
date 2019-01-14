@@ -56,10 +56,10 @@ def read_data(file_name):
             
         return X0, Z, file_info
 
-def train_test_split(X, Z, train_size=0.7, validation_size=0.2):
+def train_test_split(X, Z, train_size=0.7, validate_size=0.2):
     data_n = Z.shape[1]
     train_n = int(data_n * train_size)
-    validation_n = int(data_n * validation_size)
+    validation_n = int(data_n * validate_size)
     X_train = X[:,:train_n]
     Z_train = Z[:,:train_n]
     X_validation = X[:,train_n:train_n+validation_n]
