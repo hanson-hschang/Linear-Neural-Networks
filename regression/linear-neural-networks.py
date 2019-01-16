@@ -146,7 +146,7 @@ def plot_cost(train_cost, validate_cost):
     ax.semilogy(validate_cost, label=r'validate')
     ax.legend(fontsize=fontsize-5)
     ax.tick_params(labelsize=fontsize)
-    # ax.set_ylim([0.01,5.1])
+    ax.set_ylim([0.00001,2.1])
     ax.set_xlabel('Iteration', fontsize=fontsize)
     ax.set_ylabel('Cost', fontsize=fontsize)
     ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
@@ -170,7 +170,7 @@ if __name__ == '__main__':
     hyper_param['dt'] = hyper_param['T']/(hyper_param['inner_layers']+1.)
     hyper_param['lambda'] = 0
 
-    hyper_param['solution'] = True
+    hyper_param['solution'] = False
     hyper_param['model'] = 'forward'
     if hyper_param['solution']:
         hyper_param['model'] = hyper_param['model']+'_state_transition'
@@ -184,11 +184,15 @@ if __name__ == '__main__':
     plot_cost(train_cost, validate_cost)
 
 
-    hyper_param['inner_layers'] = 0
-    hyper_param['dt'] = hyper_param['T']
+    hyper_param['solution'] = True
+    hyper_param['model'] = 'forward'
+    if hyper_param['solution']:
+        hyper_param['model'] = hyper_param['model']+'_state_transition'
+    if sys.platform=='linux':
+        hyper_param['model'] = hyper_param['model']+'_exp' # for Linux version of tf
+    
     model_A0 = Model(data_info, hyper_param)
     train_cost, validate_cost, R_hat = model_A0.train(X0_train, Z_train, X0_validate, Z_validate)
-
 
     print(R_hat)
     plot_cost(train_cost, validate_cost)
