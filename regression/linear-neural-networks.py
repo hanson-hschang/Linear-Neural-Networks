@@ -19,6 +19,7 @@ class Model:
         self.Z = tf.placeholder(tf.float64, [data_info['output_data_dimension'], None])
 
         # Model definition
+        self.I = tf.constant(np.identity(self.data_info['input_data_dimension']))
         self.A = dict()
         for i in range(hyper_param['inner_layers']+1):
             self.A['A'+str(i)] = tf.Variable(np.random.rand(data_info['input_data_dimension'],data_info['input_data_dimension']))
@@ -26,6 +27,10 @@ class Model:
             self.XT, self.Xi = self.forward()
         elif hyper_param['model']=='forward_exp':   
             self.XT, self.Xi = self.forward_exp()
+        elif hyper_param['model']=='forward_state_transition':   
+            self.XT, self.Xi = self.forward_state_transition()
+        elif hyper_param['model']=='forward_state_transition_exp':   
+            self.XT, self.Xi = self.forward_state_transition_exp()
 
         # Cost Function
         self.cost = self.rmse() + self.regularization()
@@ -37,7 +42,7 @@ class Model:
         """Forward pass for our fuction"""
         Xi = dict(X0=self.X0)
         for i in range(hyper_param['inner_layers']+1):
-            Xi['X'+str(i+1)] = tf.matmul(self.hyper_param['dt']*self.A['A'+str(i)],Xi['X'+str(i)])
+            Xi['X'+str(i+1)] = tf.matmul(self.I+(self.hyper_param['dt']*self.A['A'+str(i)]), Xi['X'+str(i)])
         return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
 
     def forward_exp(self):
@@ -47,6 +52,34 @@ class Model:
             Xi['X'+str(i+1)] = tf.matmul(tf.linalg.expm(self.hyper_param['dt']*self.A['A'+str(i)]),Xi['X'+str(i)])
         return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
     
+    def forward_state_transition(self):
+        """Forward state transition pass for our fuction"""
+        Xi = dict(X0=self.X0)
+        for i in range(hyper_param['inner_layers']+1):
+            t = i*self.hyper_param['dt']
+            S0 = (self.A['A0']+tf.transpose(self.A['A0']))/2.
+            bar_S0 = (self.A['A0']-tf.transpose(self.A['A0']))/2.
+            St = tf.matmul(tf.matmul(self.I+(2.*t*bar_S0),S0),self.I+(-2.*t*bar_S0))
+            bar_St = bar_S0
+            self.A['A'+str(i)] = St+bar_St
+            phi_t = tf.matmul(self.I+(2.*t*bar_S0),self.I+(t*tf.transpose(self.A['A0'])))
+            Xi['X'+str(i+1)] = tf.matmul(phi_t,Xi['X0'])
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
+
+    def forward_state_transition_exp(self):
+        """Forward state transition pass for our fuction"""
+        Xi = dict(X0=self.X0)
+        for i in range(hyper_param['inner_layers']+1):
+            t = i*self.hyper_param['dt']
+            S0 = (self.A['A0']+tf.transpose(self.A['A0']))/2.
+            bar_S0 = (self.A['A0']-tf.transpose(self.A['A0']))/2.
+            St = tf.matmul(tf.matmul(tf.linalg.expm(2.*t*bar_S0),S0),tf.linalg.expm(-2.*t*bar_S0))
+            bar_St = bar_S0
+            self.A['A'+str(i)] = St+bar_St
+            phi_t = tf.matmul(tf.linalg.expm(2.*t*bar_S0),tf.linalg.expm(t*tf.transpose(self.A['A0'])))
+            Xi['X'+str(i+1)] = tf.matmul(phi_t,Xi['X0'])
+        return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
+
     def rmse(self):
         """Compute root mean squared error"""
         return tf.sqrt(tf.reduce_mean(tf.square((self.Z - self.XT))))
@@ -74,14 +107,21 @@ class Model:
                     train_cost_history[i*N_batch+k] = train_cost
                     validate_cost_history[i*N_batch+k] = validate_cost
             
+            I_np = np.identity(self.data_info['input_data_dimension'])
             R_hat = np.identity(self.data_info['input_data_dimension'])
             final_A = sess.run(self.A)
             if self.hyper_param['model']=='forward':
                 for key, Ai in final_A.items():
-                    R_hat = np.dot(Ai, R_hat)
+                    R_hat = np.dot(I_np+(self.hyper_param['dt']*Ai), R_hat)
             elif self.hyper_param['model']=='forward_exp':
                 for key, Ai in final_A.items():
-                    R_hat = np.dot(expm(Ai), R_hat)
+                    R_hat = np.dot(expm(self.hyper_param['dt']*Ai), R_hat)
+            elif self.hyper_param['model']=='forward_state_transition':
+                A0 = final_A['A0']
+                R_hat = np.dot(I_np+(self.hyper_param['T']*(A0-np.transpose(A0))), I_np+(self.hyper_param['T']*np.transpose(A0)))
+            elif self.hyper_param['model']=='forward_state_transition_exp':
+                A0 = final_A['A0']
+                R_hat = np.dot(expm(self.hyper_param['T']*(A0-np.transpose(A0))), expm(self.hyper_param['T']*np.transpose(A0)))
 
         return train_cost_history, validate_cost_history, R_hat
 
@@ -106,7 +146,7 @@ def plot_cost(train_cost, validate_cost):
     ax.semilogy(validate_cost, label=r'validate')
     ax.legend(fontsize=fontsize-5)
     ax.tick_params(labelsize=fontsize)
-    ax.set_ylim([0.01,5.1])
+    # ax.set_ylim([0.01,5.1])
     ax.set_xlabel('Iteration', fontsize=fontsize)
     ax.set_ylabel('Cost', fontsize=fontsize)
     ax.set_title('Linear Cont.-Time Neural Network', fontsize=fontsize+2)
@@ -125,30 +165,33 @@ if __name__ == '__main__':
     N_batch = Z_train.shape[1] // hyper_param['batch_size']
     hyper_param['N_iteration'] = N_batch * hyper_param['N_epoch']
 
-    hyper_param['inner_layers'] = 3
-    hyper_param['dt'] = 0.25
+    hyper_param['T'] = 1.
+    hyper_param['inner_layers'] = 19
+    hyper_param['dt'] = hyper_param['T']/(hyper_param['inner_layers']+1.)
     hyper_param['lambda'] = 0
 
+    hyper_param['solution'] = True
+    hyper_param['model'] = 'forward'
+    if hyper_param['solution']:
+        hyper_param['model'] = hyper_param['model']+'_state_transition'
     if sys.platform=='linux':
-        hyper_param['model'] = 'forward_exp' # for Linux version of tf
-    else:
-        hyper_param['model'] = 'forward' # for other version of tf 
+        hyper_param['model'] = hyper_param['model']+'_exp' # for Linux version of tf
     
     model_At = Model(data_info, hyper_param)
     train_cost, validate_cost, R_hat = model_At.train(X0_train, Z_train, X0_validate, Z_validate)
 
     print(R_hat)
-    # plot_cost(train_cost, validate_cost)
+    plot_cost(train_cost, validate_cost)
 
 
     hyper_param['inner_layers'] = 0
-    hyper_param['dt'] = 1
+    hyper_param['dt'] = hyper_param['T']
     model_A0 = Model(data_info, hyper_param)
     train_cost, validate_cost, R_hat = model_A0.train(X0_train, Z_train, X0_validate, Z_validate)
 
 
     print(R_hat)
-    # plot_cost(train_cost, validate_cost)
+    plot_cost(train_cost, validate_cost)
 
     plt.show()
 

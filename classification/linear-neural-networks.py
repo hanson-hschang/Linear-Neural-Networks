@@ -48,7 +48,8 @@ class Model:
         """Forward pass for our fuction"""
         Xi = dict(X0=self.X0)
         for i in range(hyper_param['inner_layers']+1):
-            Xi['X'+str(i+1)] = tf.matmul(self.hyper_param['dt']*self.A['A'+str(i)],Xi['X'+str(i)])
+            Xi['X'+str(i+1)] = tf.matmul(tf.constant(np.identity(self.data_info['input_data_dimension']))+self.hyper_param['dt']*self.A['A'+str(i)], \
+                                            Xi['X'+str(i)])
         return Xi['X'+str(hyper_param['inner_layers']+1)], Xi
 
     # Forward Network with Exponetial Weight
@@ -122,9 +123,10 @@ class Model:
                     normal_to_w_hat[j+2,j] = 1
             N = len(A_list)
             if model == 'forward':
+                I = np.identity(dim_n)
                 for j in range(dim_n-1):
                     for i in range(N):
-                        normal_to_w_hat[:,j] = np.dot(np.linalg.inv(dt*A_list[N-i-1]), normal_to_w_hat[:,j])
+                        normal_to_w_hat[:,j] = np.dot(np.linalg.inv(I+dt*A_list[N-i-1]), normal_to_w_hat[:,j])
                     normal_to_w_hat[:,j] = normal_to_w_hat[:,j]/np.linalg.norm(normal_to_w_hat[:,j])
             elif model == 'forward_exp':
                 for j in range(dim_n-1):
