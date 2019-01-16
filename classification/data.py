@@ -37,7 +37,7 @@ def generate_data(file_name, w, noise_amp, dim_n, data_n):
     file['input_data_dimension'] = dim_n
     file['output_data_dimension'] = 2
     file['number_of_data'] = data_n
-    file['retation_w'] = np.array2string(w, separator=',')
+    file['relation_w'] = np.array2string(w, separator=',')
     file['noise_amp'] = noise_amp
     file['data'] = data
 
@@ -58,7 +58,7 @@ def read_data(file_name):
         input_dim_n = file_info["input_data_dimension"]
         output_dim_n = file_info["output_data_dimension"]
         data_n = file_info["number_of_data"]
-        file_info['retation_w'] = np.fromstring(file_info['retation_w'][1:-1], sep=',')
+        file_info['relation_w'] = np.fromstring(file_info['relation_w'][1:-1], sep=',')
         data = file_info["data"]
         X0 = np.zeros((input_dim_n, data_n))
         Z = np.zeros((output_dim_n, data_n))

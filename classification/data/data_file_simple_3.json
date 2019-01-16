@@ -3,7 +3,7 @@
     "input_data_dimension": 3,
     "output_data_dimension": 2,
     "number_of_data": 10000,
-    "retation_w": "[ 0.17654484, 0.24564151,-0.95314855]",
+    "relation_w": "[ 0.17654484, 0.24564151,-0.95314855]",
     "noise_amp": 0.1,
     "data": {
         "[0.82215419,0.14048741,0.66426481]": "[1.,0.]",

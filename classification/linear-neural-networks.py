@@ -101,7 +101,8 @@ class Model:
             print("Model saved in path: %s" % self.save_path)
 
             final_A_dict = sess.run(self.A)
-            
+            final_XT = sess.run(fetches=self.XT, feed_dict={self.X0: X0_train, self.Z: Z_train})
+
             print("Test Accuracy:", sess.run(fetches=self.accuracy_percentage, feed_dict={self.X0: X0_test, self.Z: Z_test}), "%")
 
         # Change Weight A from Dictionary to List
@@ -143,7 +144,7 @@ class Model:
                 normal_vector = np.zeros(dim_n)
                 for i in range(dim_n):
                     normal_vector[i] = ((-1.)**(i*(dim_n+1))) * np.linalg.det(extend_vectors[:,i+1:i+dim_n])
-                normal_vector = normal_vector / np.linalg.norm(normal_vector)
+                normal_vector = ((-1.)**(dim_n+1)) * normal_vector / np.linalg.norm(normal_vector)
                 
                 return normal_vector
             
@@ -153,7 +154,7 @@ class Model:
         
         [w_hat, normal_to_w_hat] = estimate_w(final_A_dict, self.hyper_param['model'], hyper_param['dt'])
             
-        return train_cost_history, validate_accuracy_history, w_hat, normal_to_w_hat
+        return train_cost_history, validate_accuracy_history, w_hat, normal_to_w_hat, final_XT
 
     def test(self, X0_test, Z_test):
         test_size = X0_test.shape[1]
@@ -223,6 +224,7 @@ def plot_model_with_data(X0, Z, w_hat, normal_to_w_hat):
         ax.arrow(0, 0, normal_to_w_hat[0,0], normal_to_w_hat[1,0], head_width=0.05, head_length=0.1, fc='k', ec='k')
         plt.axis('equal')
     elif w_hat.shape[0]==3 :
+        fig, ax = plt.subplots(1,1, figsize=(9,7))
         ax = plt.axes(projection='3d')
         ax.scatter(X0[0,:],X0[1,:],X0[2,:],c=Z[0,:])
         xline = [0, w_hat[0]]
@@ -261,8 +263,9 @@ if __name__ == '__main__':
     hyper_param['beta'][0,0] = 1.
     hyper_param['beta'][1,1] = 1.
 
+    hyper_param['T'] = 1.
     hyper_param['inner_layers'] = 3
-    hyper_param['dt'] = 0.25
+    hyper_param['dt'] = hyper_param['T']/(hyper_param['inner_layers']+1.)
     hyper_param['lambda'] = 0
 
     if sys.platform=='linux':
@@ -271,23 +274,30 @@ if __name__ == '__main__':
         hyper_param['model'] = 'forward' # for other version of tf 
 
     model_At = Model(data_info, hyper_param)
-    train_cost, validate_cost, w_hat, normal_to_w_hat = model_At.train(X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test)
+    train_cost, validate_accuracy, w_hat, normal_to_w_hat, XT = model_At.train(X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test)
 
-    print(w_hat)
-    # plot_cost(train_cost, validate_cost)
+    print('esitmate w:',w_hat)
+    print('model w:',data_info['relation_w'])
+
+    # plot_cost(train_cost)
     # plot_model_with_data(X0_validate, Z_validate, w_hat, normal_to_w_hat)
 
-    hyper_param['inner_layers'] = 0
-    hyper_param['dt'] = 1
-    model_A0 = Model(data_info, hyper_param)
-    train_cost, validate_accuracy, w_hat, normal_to_w_hat = model_A0.train(X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test)
+    # hyper_param['inner_layers'] = 0
+    # hyper_param['dt'] = 1
+    # model_A0 = Model(data_info, hyper_param)
+    # train_cost, validate_accuracy, w_hat, normal_to_w_hat = model_A0.train(X0_train, Z_train, X0_validate, Z_validate, X0_test, Z_test)
 
-    print(w_hat)
+    # print(w_hat)
     print('\n inner dot of model vector and learned vector')
-    print(np.dot(w_hat,data_info['retation_w']))
+    print(np.dot(w_hat,data_info['relation_w']))
 
     plot_cost(train_cost)
     plot_accuracy(validate_accuracy)
     plot_model_with_data(X0_validate, Z_validate, w_hat, normal_to_w_hat)
+    if data_info['input_data_dimension']==2:
+        plot_model_with_data(XT, Z_train, np.array([-1, 1]), np.array([[1],[1]]))
+    elif data_info['input_data_dimension']==3:
+        plot_model_with_data(XT, Z_train, np.array([-1, 1, 0]), np.array([[1, 1],[1, 1], [0, 1]]))
+
 
     plt.show()
